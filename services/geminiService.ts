@@ -1,10 +1,9 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Palette } from '../types';
 
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable not set");
-}
-
+// FIX: Corrected API key initialization to align with guidelines.
+// The API key must be sourced from `process.env.API_KEY` and can be used directly.
+// This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 interface ApiImageData {
