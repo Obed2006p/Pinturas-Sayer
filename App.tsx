@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ColorInput } from './components/ColorInput';
 import { ImageUploader } from './components/ImageUploader';
 import { PaletteDisplay } from './components/PaletteDisplay';
@@ -6,8 +6,10 @@ import { LoadingSpinner } from './components/LoadingSpinner';
 import { ErrorMessage } from './components/ErrorMessage';
 import { WelcomeSplash } from './components/WelcomeSplash';
 import { Header } from './components/Header';
+import { StatusIndicator } from './components/StatusIndicator';
 import { getThemeSuggestions, getThemeSuggestionsFromImage } from './services/geminiService';
 import type { Palette, ImageData } from './types';
+import type { ApiStatus } from './components/StatusIndicator';
 
 type InputMode = 'color' | 'image';
 
@@ -18,12 +20,26 @@ function App() {
   const [palettes, setPalettes] = useState<Palette[] | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<ApiStatus>('idle');
+  const [statusMessage, setStatusMessage] = useState<string>('');
+
+  useEffect(() => {
+    if (apiStatus === 'success') {
+      const timer = setTimeout(() => {
+        setApiStatus('idle');
+        setStatusMessage('');
+      }, 3000); // Hide after 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [apiStatus]);
 
   const handleGenerate = async () => {
     // Reset state before new request
     setIsLoading(true);
     setError(null);
     setPalettes(null);
+    setApiStatus('loading');
+    setStatusMessage('Comunicando con el asistente de IA para generar las paletas...');
 
     try {
       let result: Palette[];
@@ -42,13 +58,23 @@ function App() {
         });
       }
       setPalettes(result);
+      setApiStatus('success');
+      setStatusMessage('¡Paletas generadas con éxito!');
     } catch (e: any) {
-      setError(e.message || 'Ocurrió un error inesperado.');
+      const errorMessage = e.message || 'Ocurrió un error inesperado.';
+      setError(errorMessage);
+      setApiStatus('error');
+      setStatusMessage(`Falló la comunicación con el servidor. Revisa el detalle abajo.`);
     } finally {
       setIsLoading(false);
     }
   };
   
+  const handleCloseStatus = () => {
+    setApiStatus('idle');
+    setStatusMessage('');
+  };
+
   const isGenerateDisabled = isLoading || (activeInput === 'color' && !color) || (activeInput === 'image' && !imageData);
 
   const renderContent = () => {
@@ -126,6 +152,11 @@ function App() {
         {/* Output Section */}
         <div className="mt-12">
            <h2 className="text-lg md:text-2xl font-semibold mb-4 text-gray-800 text-center">3. ¡Inspírate!</h2>
+            {apiStatus !== 'idle' && (
+              <div className="mb-8">
+                <StatusIndicator status={apiStatus} message={statusMessage} onClose={handleCloseStatus} />
+              </div>
+            )}
           {renderContent()}
         </div>
       </main>
