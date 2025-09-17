@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { Palette } from "../types";
+import type { Palette } from "../src/types";
 
 // This tells Vercel to run this as an edge function for better performance
 export const config = {
@@ -66,10 +66,15 @@ async function generateFromColor(ai: GoogleGenAI, baseColor: string): Promise<Pa
 
     const jsonText = response.text.trim();
     if (!jsonText) {
-      throw new Error("The API returned an empty response.");
+      throw new Error("La API devolvió una respuesta vacía.");
     }
 
-    return JSON.parse(jsonText) as Palette[];
+    try {
+        return JSON.parse(jsonText) as Palette[];
+    } catch (e) {
+        console.error("Failed to parse JSON from AI response. Raw text:", jsonText);
+        throw new Error("La respuesta de la IA no tuvo el formato JSON esperado. Revisa los logs del servidor para ver la respuesta completa.");
+    }
 }
 
 async function generateFromImage(ai: GoogleGenAI, image: { base64Data: string, mimeType: string }): Promise<Palette[]> {
@@ -111,10 +116,15 @@ async function generateFromImage(ai: GoogleGenAI, image: { base64Data: string, m
 
     const jsonText = response.text.trim();
     if (!jsonText) {
-      throw new Error("The API returned an empty response.");
+      throw new Error("La API devolvió una respuesta vacía después de procesar la imagen.");
     }
     
-    return JSON.parse(jsonText) as Palette[];
+    try {
+        return JSON.parse(jsonText) as Palette[];
+    } catch(e) {
+        console.error("Failed to parse JSON from AI response (image). Raw text:", jsonText);
+        throw new Error("La respuesta de la IA no tuvo el formato JSON esperado. Revisa los logs del servidor para ver la respuesta completa.");
+    }
 }
 
 
@@ -129,7 +139,7 @@ export default async function handler(request: Request) {
 
   const apiKey = process.env.API_KEY;
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: 'API key is not configured on the server.' }), {
+    return new Response(JSON.stringify({ error: 'La clave de API no está configurada en el servidor.' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -145,21 +155,21 @@ export default async function handler(request: Request) {
     if (type === 'color') {
       const { color } = body;
       if (!color || typeof color !== 'string' || !/^#[0-9A-F]{6}$/i.test(color)) {
-        return new Response(JSON.stringify({ error: 'A valid hex color code is required.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+        return new Response(JSON.stringify({ error: 'Se requiere un código de color hexadecimal válido.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       }
       palettes = await generateFromColor(ai, color);
     } else if (type === 'image') {
       const { image } = body;
       if (!image || !image.base64Data || !image.mimeType) {
-         return new Response(JSON.stringify({ error: 'Image data is required.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+         return new Response(JSON.stringify({ error: 'Se requieren los datos de la imagen.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
       }
       palettes = await generateFromImage(ai, image);
     } else {
-      return new Response(JSON.stringify({ error: 'Invalid request type specified.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: 'Se especificó un tipo de solicitud no válido.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
     
     if (!Array.isArray(palettes)) {
-      throw new Error("AI response was not in the expected format (array of palettes).");
+      throw new Error("La respuesta de la IA no estaba en el formato esperado (array de paletas).");
     }
 
     return new Response(JSON.stringify(palettes), {
@@ -169,8 +179,8 @@ export default async function handler(request: Request) {
 
   } catch (error) {
     console.error("Error in API route:", error);
-    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
-    return new Response(JSON.stringify({ error: `Server error: ${errorMessage}` }), {
+    const errorMessage = error instanceof Error ? error.message : "Ocurrió un error inesperado.";
+    return new Response(JSON.stringify({ error: `Error del servidor: ${errorMessage}` }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
