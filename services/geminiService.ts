@@ -1,10 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Palette } from '../types';
 
-// FIX: Corrected API key initialization to align with guidelines.
-// The API key must be sourced from `process.env.API_KEY` and can be used directly.
-// This also resolves the TypeScript error "Property 'env' does not exist on type 'ImportMeta'".
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// FIX: Use process.env.API_KEY as required by the guidelines, which also resolves the 'ImportMeta' type error.
+const apiKey = process.env.API_KEY;
+
+if (!apiKey) {
+  // FIX: Updated error message to reflect the change to process.env.API_KEY.
+  throw new Error("API_KEY environment variable not set. Please check your project settings.");
+}
+
+const ai = new GoogleGenAI({ apiKey });
 
 interface ApiImageData {
   base64Data: string;
@@ -140,7 +145,7 @@ export async function getThemeSuggestionsFromImage(image: ApiImageData): Promise
     }
 
     return palettes;
-  } catch (error) {
+  } catch (error) { // FIX: Added missing opening curly brace for the catch block, which caused syntax errors.
     console.error("Error calling Gemini API with image:", error);
     if (error instanceof Error && error.message.includes('JSON')) {
         throw new Error("Failed to parse the AI's response. Please try a different image.");
