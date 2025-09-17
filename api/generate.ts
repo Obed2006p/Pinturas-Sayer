@@ -137,7 +137,7 @@ export default async function handler(request: Request) {
     });
   }
 
-  const apiKey = process.env.API_KEY;
+  const apiKey = process.env.API_KEY || process.env.VITE_API_KEY;
   if (!apiKey) {
     return new Response(JSON.stringify({ error: 'La clave de API no está configurada en el servidor.' }), {
       status: 500,
