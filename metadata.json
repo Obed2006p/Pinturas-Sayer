@@ -1,0 +1,7 @@
+{
+  "name": "Sayer Color Assistant",
+  "description": "An AI-powered assistant to help you find the perfect color combinations for your walls, inspired by SAYER paints.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
